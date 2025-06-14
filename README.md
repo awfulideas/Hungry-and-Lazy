@@ -1,1 +1,1 @@
-# hungry-and-lazy
+# Hungry-and-Lazy
