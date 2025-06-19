@@ -1,8 +1,7 @@
 export const styles = {
   container: { height: '100vh', backgroundColor: '#F5F5F5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' },
-  profileContainer: { flex: 1, padding: 20, backgroundColor: '#fff', overflowY: 'auto' },
   profileHeader: { display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  profileTitle: { fontSize: 28, fontWeight: 'bold', marginLeft: 10, color: '#333', margin: 0 },
+  profileTitle: { fontSize: 28, fontWeight: 'bold', alignItems: 'center', color: '#333', margin: 0 },
   profileSubtitle: { fontSize: 16, color: '#666', marginBottom: 30 },
   profileSublabel: { fontSize: 14, color: '#666', marginBottom: 10 },
   inputGroup: { marginBottom: 25 },
@@ -81,5 +80,14 @@ export const styles = {
     color: '#666',
     margin: 0
   },
-
+    profileContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+    overflow: 'hidden',      
+    height: '100vh',           
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  
 };
