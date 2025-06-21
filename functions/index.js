@@ -89,7 +89,7 @@ exports.getNearbyRestaurants = onCall(
             vicinity: place.vicinity,
             placeId: place.place_id, // Add this for better Google Maps integration
           })
-        );
+        ).filter(restaurant => restaurant.rating >= 4.0); 
   
         logger.info(`Found ${transformedRestaurants.length} restaurants`);
         
@@ -210,7 +210,7 @@ exports.searchRestaurants = onCall(
                     isOpen: place.opening_hours?.open_now,
                     address: place.formatted_address,
                 })
-            );
+            ).filter(restaurant => restaurant.rating >= 4.0); 
 
             return { restaurants: transformedRestaurants }; // Return directly
         } catch (error) {
@@ -319,6 +319,6 @@ function getPhotoUrl(photoReference) {
         return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?' +
             'q=80&w=1000&auto=format&fit=crop';
     }
-    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=700` +
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600` +
         `&photo_reference=${photoReference}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
 }
