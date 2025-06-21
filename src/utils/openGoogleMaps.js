@@ -1,8 +1,12 @@
 export const openGoogleMaps = (restaurant) => {
     try {
-        const url = restaurant.placeId
-            ? `https://www.google.com/maps/place/?q=place_id:${restaurant.placeId}`
-            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name + ' ' + (restaurant.vicinity || ''))}`;
+        // Create a search query with restaurant name and location
+        const searchQuery = encodeURIComponent(
+            `${restaurant.name} ${restaurant.vicinity || restaurant.address || ''}`
+        );
+
+        // Use a universal Google Maps URL that works on both web and mobile
+        const url = `https://maps.google.com/?q=${searchQuery}`;
 
         window.open(url, '_blank', 'noopener,noreferrer');
 
