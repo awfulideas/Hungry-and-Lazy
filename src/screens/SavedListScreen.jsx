@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, ChevronLeft, Star, MapPin } from 'lucide-react';
 import { styles } from '../styles/styles';
+import { openGoogleMaps } from '../utils/openGoogleMaps';
 
 export const SavedListScreen = ({ savedItems, onBack, onNavigate }) => (
     <div style={styles.savedContainer}>
@@ -29,7 +30,7 @@ export const SavedListScreen = ({ savedItems, onBack, onNavigate }) => (
                                 <span style={styles.savedItemDetailsText}> • {item.price}</span>
                             </div>
                         </div>
-                        <button style={styles.navigateButton} onClick={() => onNavigate(item.coords)}>
+                        <button style={styles.navigateButton} onClick={() => onNavigate(item)}>
                             <MapPin size={24} color="#fff" />
                         </button>
                     </div>

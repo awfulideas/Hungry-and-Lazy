@@ -4,6 +4,8 @@ import { MainScreen } from './screens/MainScreen';
 import { SavedListScreen } from './screens/SavedListScreen';
 import { MOCK_RESTAURANTS } from './data/mockData';
 import { styles } from './styles/styles';
+import { getNearbyRestaurants, getCurrentLocation } from './services/restaurantService';
+import { openGoogleMaps } from './utils/openGoogleMaps';
 
 export default function App() {
   const [appState, setAppState] = useState('profileSetup');
@@ -18,38 +20,64 @@ export default function App() {
   const [restaurants, setRestaurants] = useState([]);
   const [saved, setSaved] = useState([]);
   const [disliked, setDisliked] = useState([]);
+  const [nextPageToken, setNextPageToken] = useState(null);
+  const [hasMoreRestaurants, setHasMoreRestaurants] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
 
   useEffect(() => {
-    if (appState === 'main') {
-      const filtered = MOCK_RESTAURANTS.filter(r => {
-        const priceLength = r.price.length;
-        const cuisineMatch = profile.cuisines.length === 0 || profile.cuisines.includes(r.cuisine);
-        const priceMatch = priceLength >= profile.minPrice && priceLength <= profile.maxPrice;
-
-        // The 'eatingTime' filter is stored, but not yet used.
-        // A real app would use this to check if a restaurant is currently open.
-        return !disliked.includes(r.id) &&
-          r.distance <= profile.distance &&
-          cuisineMatch &&
-          priceMatch;
-      });
-      setRestaurants(filtered);
+    if (restaurants.length !== 0) {
+      loadNearbyRestaurants(false);
     }
-  }, [appState, profile, disliked]);
+  }, [profile]);
+
+  useEffect(() => {
+    if (appState === 'main' && restaurants.length === 0 && !isLoadingMore) {
+      loadNearbyRestaurants(false);
+    }
+  }, [appState]);
+
+  const loadNearbyRestaurants = async (loadMore = false) => {
+    try {
+      setIsInitialLoading(true);
+      const userLocation = await getCurrentLocation();
+
+      const pageToken = loadMore ? nextPageToken : null;
+      const result = await getNearbyRestaurants(userLocation, {
+        distance: profile.distance,
+        cuisine: profile.cuisines[0],
+      }, pageToken);
+
+      if (loadMore) {
+        // Append new restaurants to existing ones
+        setRestaurants(prev => [...prev, ...result.restaurants]);
+      } else {
+        // Replace with new restaurants
+        setRestaurants(result.restaurants);
+      }
+
+      setNextPageToken(result.nextPageToken);
+      setHasMoreRestaurants(result.hasMore);
+    } catch (error) {
+      console.error('Error loading restaurants:', error);
+      setRestaurants(MOCK_RESTAURANTS); // Fallback
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
 
   const handleProfileSave = (newProfile) => {
     setProfile(newProfile);
     setAppState('main'); // Go directly to main screen now
   };
-  
-  const handleAction = (id, action) => {
+
+  const handleAction = async (id, action) => {
     const currentRestaurant = restaurants.find(r => r.id === id);
     if (!currentRestaurant) return;
 
     switch (action) {
       case 'LIKE':
-        const url = `https://www.google.com/maps/search/?api=1&query=${currentRestaurant.coords.latitude},${currentRestaurant.coords.longitude}`;
-        window.open(url, '_blank');
+        openGoogleMaps(currentRestaurant)
         setRestaurants(prev => prev.filter(r => r.id !== id));
         break;
       case 'SAVE':
@@ -63,6 +91,38 @@ export default function App() {
         setRestaurants(prev => prev.filter(r => r.id !== id));
         break;
     }
+
+    // Check if this was the last restaurant
+    const remainingRestaurants = restaurants.filter(r => r.id !== id);
+
+    if (remainingRestaurants.length === 0 && hasMoreRestaurants && !isLoadingMore) {
+      // No restaurants left - load more with loading screen
+      await loadMoreRestaurants();
+    }
+  };
+
+  const loadMoreRestaurants = async () => {
+    if (!hasMoreRestaurants || isLoadingMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      const userLocation = await getCurrentLocation();
+
+      const result = await getNearbyRestaurants(userLocation, {
+        distance: profile.distance,
+        cuisine: profile.cuisines[0],
+      }, nextPageToken);
+
+      // Append new restaurants
+      setRestaurants(prev => [...prev, ...result.restaurants]);
+      setNextPageToken(result.nextPageToken);
+      setHasMoreRestaurants(result.hasMore);
+    } catch (error) {
+      console.error('Error loading more restaurants:', error);
+      // Could show error state here
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   const renderContent = () => {
@@ -70,17 +130,20 @@ export default function App() {
       case 'profileSetup':
         return <ProfileSetupScreen onSave={handleProfileSave} currentProfile={profile} />;
       case 'main':
-        return <MainScreen 
-                  restaurants={restaurants} 
-                  onAction={handleAction} 
-                  onShowSaved={() => setAppState('savedList')} 
-                  onShowProfile={() => setAppState('profileSetup')}
-               />;
+        return <MainScreen
+          restaurants={restaurants}
+          onAction={handleAction}
+          onShowSaved={() => setAppState('savedList')}
+          onShowProfile={() => setAppState('profileSetup')}
+          isInitialLoading={isInitialLoading}
+          isLoadingMore={isLoadingMore}
+          hasMoreRestaurants={hasMoreRestaurants}
+        />;
       case 'savedList':
-        return <SavedListScreen savedItems={saved} onBack={() => setAppState('main')} onNavigate={(coords) => {
-            const url = `https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`;
-            window.open(url, '_blank');
-        }} />;
+        return <SavedListScreen savedItems={saved}
+          onBack={() => setAppState('main')}
+          onNavigate={openGoogleMaps}
+        />;
       default:
         return <ProfileSetupScreen onSave={handleProfileSave} currentProfile={profile} />;
     }
