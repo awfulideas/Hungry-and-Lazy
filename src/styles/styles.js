@@ -88,5 +88,28 @@ export const styles = {
     display: 'flex',
     flexDirection: 'column',
   },
+
+  profileHeaderWithBack: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    width: '100%'
+  },
+  
+  backButton: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 8,
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background-color 0.2s ease',
+    ':hover': {
+      backgroundColor: '#f0f0f0'
+    }
+  },
   
 };

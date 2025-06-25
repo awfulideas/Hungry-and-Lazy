@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { User } from 'lucide-react';
+import { User, ChevronLeft  } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { PriceRangeSlider } from '../components/PriceRangeSlider';
 
-export const ProfileSetupScreen = ({ onSave, currentProfile }) => {
+export const ProfileSetupScreen = ({ onSave, currentProfile, hideDistance = false, onBack }) => {
     const [profile, setProfile] = useState(currentProfile);
     const updateProfile = (key, value) => setProfile(prev => ({ ...prev, [key]: value }));
 
@@ -20,19 +20,30 @@ export const ProfileSetupScreen = ({ onSave, currentProfile }) => {
 
     return (
         <div style={styles.profileContainer}>
-            <div style={styles.profileHeader}>
-                <User color="#333" size={32} />
-                <h1 style={styles.profileTitle}>Your Food Profile</h1>
+            <div style={styles.profileHeaderWithBack}>
+                <button
+                    style={styles.backButton}
+                    onClick={onBack}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                >
+                    <ChevronLeft size={24} color="#333" />
+                </button>
+                <div style={styles.profileHeader}>
+                    <User color="#333" size={32} />
+                    <h1 style={styles.profileTitle}>Your Food Profile</h1>
+                </div>
+                <div style={{ width: 24 }} />
             </div>
             <p style={styles.profileSubtitle}>Set your preferences to get the best recommendations.</p>
-            
+
             <div style={styles.inputGroup}>
                 <label style={styles.label}>Dietary Restrictions</label>
                 <div style={styles.optionContainer}>
                     {['None', 'Vegetarian', 'Vegan', 'Gluten-Free'].map(item => (
-                        <button 
-                            key={item} 
-                            style={profile.diet === item ? styles.optionButtonSelected : styles.optionButton} 
+                        <button
+                            key={item}
+                            style={profile.diet === item ? styles.optionButtonSelected : styles.optionButton}
                             onClick={() => updateProfile('diet', item)}
                         >
                             {item}
@@ -40,15 +51,15 @@ export const ProfileSetupScreen = ({ onSave, currentProfile }) => {
                     ))}
                 </div>
             </div>
-            
+
             <div style={styles.inputGroup}>
                 <label style={styles.label}>Cuisines</label>
                 <p style={styles.profileSublabel}>Select one or more. Leave blank for any.</p>
                 <div style={styles.optionContainer}>
                     {['Italian', 'Mexican', 'Japanese', 'American', 'Chinese', 'Indian', 'Thai', 'Vietnamese', 'French', 'Mediterranean', 'Korean'].map(item => (
-                        <button 
-                            key={item} 
-                            style={profile.cuisines.includes(item) ? styles.optionButtonSelected : styles.optionButton} 
+                        <button
+                            key={item}
+                            style={profile.cuisines.includes(item) ? styles.optionButtonSelected : styles.optionButton}
                             onClick={() => handleCuisineToggle(item)}
                         >
                             {item}
@@ -56,35 +67,38 @@ export const ProfileSetupScreen = ({ onSave, currentProfile }) => {
                     ))}
                 </div>
             </div>
-            
-            <div style={styles.inputGroup}>
-                <label style={styles.label}>Max Distance</label>
-                <div style={styles.optionContainer}>
-                   {[1, 5, 10, 20].map(val => (
-                       <button 
-                           key={val} 
-                           style={profile.distance === val ? styles.optionButtonSelected : styles.optionButton} 
-                           onClick={() => updateProfile('distance', val)}
-                       >
-                           {val} km
-                       </button>
-                   ))}
+
+            {/* Conditionally render distance selection */}
+            {!hideDistance && (
+                <div style={styles.inputGroup}>
+                    <label style={styles.label}>Max Distance</label>
+                    <div style={styles.optionContainer}>
+                        {[1, 5, 10, 20].map(val => (
+                            <button
+                                key={val}
+                                style={profile.distance === val ? styles.optionButtonSelected : styles.optionButton}
+                                onClick={() => updateProfile('distance', val)}
+                            >
+                                {val} km
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
-            
+            )}
+
             <div style={styles.inputGroup}>
                 <label style={styles.label}>Price Range</label>
                 <div style={styles.sliderWrapper}>
-                    <PriceRangeSlider 
+                    <PriceRangeSlider
                         min={profile.minPrice}
                         max={profile.maxPrice}
-                        onMinChange={(val) => setProfile(p => ({...p, minPrice: val}))}
-                        onMaxChange={(val) => setProfile(p => ({...p, maxPrice: val}))}
+                        onMinChange={(val) => setProfile(p => ({ ...p, minPrice: val }))}
+                        onMaxChange={(val) => setProfile(p => ({ ...p, maxPrice: val }))}
                     />
                 </div>
             </div>
-            
-            <div style={styles.inputGroup}>
+
+            {/* <div style={styles.inputGroup}>
                 <label style={styles.label}>When do you want to eat?</label>
                 <div style={styles.optionContainer}>
                     <button 
@@ -100,10 +114,10 @@ export const ProfileSetupScreen = ({ onSave, currentProfile }) => {
                         LATER
                     </button>
                 </div>
-            </div>
-            
+            </div> */}
+
             <button style={styles.saveButton} onClick={() => onSave(profile)}>
-                Save & Find Food
+                {hideDistance ? 'Find Food Now!' : 'Save & Find Food'}
             </button>
         </div>
     );

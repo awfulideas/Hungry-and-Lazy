@@ -3,12 +3,14 @@ import { ProfileSetupScreen } from './screens/ProfileSetupScreen';
 import { MainScreen } from './screens/MainScreen';
 import { SavedListScreen } from './screens/SavedListScreen';
 import { MOCK_RESTAURANTS } from './data/mockData';
+import { LandingScreen } from './screens/LandingScreen';
 import { styles } from './styles/styles';
 import { getNearbyRestaurants, getCurrentLocation } from './services/restaurantService';
 import { openGoogleMaps } from './utils/openGoogleMaps';
 
 export default function App() {
-  const [appState, setAppState] = useState('profileSetup');
+  const [appState, setAppState] = useState('landing'); 
+  const [isHungryNow, setIsHungryNow] = useState(false); 
   const [profile, setProfile] = useState({
     diet: 'None',
     cuisines: [],
@@ -64,6 +66,18 @@ export default function App() {
     } finally {
       setIsInitialLoading(false);
     }
+  };
+
+  const handleHungryNow = () => {
+    setIsHungryNow(true);
+    setProfile(prev => ({ ...prev, distance: 1, eatingTime: 'NOW' })); // Set distance to 1 mile
+    setAppState('profileSetup');
+  };
+
+  const handleLater = () => {
+    setIsHungryNow(false);
+    setProfile(prev => ({ ...prev, eatingTime: 'LATER' }));
+    setAppState('profileSetup');
   };
 
   const handleProfileSave = (newProfile) => {
@@ -127,8 +141,15 @@ export default function App() {
 
   const renderContent = () => {
     switch (appState) {
+      case 'landing':
+        return <LandingScreen onHungryNow={handleHungryNow} onLater={handleLater} />;
       case 'profileSetup':
-        return <ProfileSetupScreen onSave={handleProfileSave} currentProfile={profile} />;
+        return <ProfileSetupScreen 
+          onSave={handleProfileSave} 
+          currentProfile={profile}
+          hideDistance={isHungryNow} 
+          onBack={() => setAppState('landing')}
+        />;
       case 'main':
         return <MainScreen
           restaurants={restaurants}
@@ -138,6 +159,7 @@ export default function App() {
           isInitialLoading={isInitialLoading}
           isLoadingMore={isLoadingMore}
           hasMoreRestaurants={hasMoreRestaurants}
+          openGoogleMaps={openGoogleMaps}
         />;
       case 'savedList':
         return <SavedListScreen savedItems={saved}
@@ -145,7 +167,7 @@ export default function App() {
           onNavigate={openGoogleMaps}
         />;
       default:
-        return <ProfileSetupScreen onSave={handleProfileSave} currentProfile={profile} />;
+        return <LandingScreen onHungryNow={handleHungryNow} onLater={handleLater} />;
     }
   };
 
