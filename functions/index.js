@@ -11,100 +11,126 @@ const googleMapsClient = new Client({});
 
 exports.getNearbyRestaurants = onCall(
     {
-      timeoutSeconds: 60,
-      memory: "256MiB",
-      cors: true,
+        timeoutSeconds: 60,
+        memory: "256MiB",
+        cors: true,
     },
     async (request) => {
-      try {
-        const {
-          latitude, 
-          longitude, 
-          radius = 5000, 
-          cuisine,
-          pageToken // Add this for pagination
-        } = request.data;
-  
-        if (!latitude || !longitude) {
-          throw new Error("Latitude and longitude are required");
+        try {
+            const {
+                latitude,
+                longitude,
+                radius = 5000,
+                includedCuisines = [], // Changed from single cuisine to array
+                excludedCuisines = [], // New parameter
+                establishmentType = 'Restaurant', // Add this
+                pageToken
+            } = request.data;
+
+            if (!latitude || !longitude) {
+                throw new Error("Latitude and longitude are required");
+            }
+
+            const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+            if (!apiKey) {
+                throw new Error("GOOGLE_PLACES_API_KEY environment variable is not set");
+            }
+
+            logger.info("Fetching restaurants", {
+                latitude,
+                longitude,
+                radius,
+                includedCuisines,
+                excludedCuisines,
+                hasPageToken: !!pageToken
+            });
+
+            let keyword = establishmentType.toLowerCase(); // Use the actual establishment type
+
+            if (establishmentType === 'Restaurant') {
+                if (includedCuisines && includedCuisines.length > 0) {
+                    // If specific cuisines are included, search for the first one
+                    keyword = `${includedCuisines[0]} restaurant`;
+                } else {
+                    keyword = "restaurant";
+                }
+            } else {
+                // For non-restaurant types, use the establishment type as keyword
+                const keywordMapping = {
+                    'Bar': 'bar',
+                    'Cafe': 'cafe',
+                    'Desserts': 'dessert'
+                };
+                keyword = keywordMapping[establishmentType] || establishmentType.toLowerCase();
+            }
+
+            const searchType = getGooglePlaceType(establishmentType);
+
+            const params = {
+                location: { lat: Number(latitude), lng: Number(longitude) },
+                radius: Number(radius),
+                keyword: keyword,
+                type: searchType,
+                key: apiKey,
+            };
+
+            if (pageToken) {
+                params.pagetoken = pageToken;
+            }
+
+            const placesResponse = await googleMapsClient.placesNearby({
+                params: params,
+            });
+
+            const transformedRestaurants = placesResponse.data.results.map(
+                (place, index) => ({
+                    id: place.place_id || `restaurant-${index}`,
+                    name: place.name || "Unknown Restaurant",
+                    cuisine: extractCuisineFromTypes(place.types || []),
+                    price: convertPriceLevel(place.price_level),
+                    distance: calculateDistance(
+                        Number(latitude),
+                        Number(longitude),
+                        place.geometry?.location?.lat || 0,
+                        place.geometry?.location?.lng || 0
+                    ),
+                    rating: place.rating || 0,
+                    heroPhoto: getPhotoUrl(place.photos?.[0]?.photo_reference),
+                    summary: `${place.name} - ${place.vicinity}`,
+                    highlights: [],
+                    coords: {
+                        latitude: place.geometry?.location?.lat || 0,
+                        longitude: place.geometry?.location?.lng || 0,
+                    },
+                    isOpen: place.opening_hours?.open_now,
+                    vicinity: place.vicinity,
+                    placeId: place.place_id,
+                })
+            ).filter(restaurant => {
+                // Existing rating filter
+                if (restaurant.rating < 4.0) return false;
+
+                // New cuisine exclusion filter
+                if (excludedCuisines && excludedCuisines.length > 0) {
+                    return !excludedCuisines.includes(restaurant.cuisine);
+                }
+
+                return true;
+            });
+
+            logger.info(`Found ${transformedRestaurants.length} restaurants after filtering`);
+
+            return {
+                restaurants: transformedRestaurants,
+                nextPageToken: placesResponse.data.next_page_token || null,
+                hasMore: !!placesResponse.data.next_page_token
+            };
+        } catch (error) {
+            logger.error("Error fetching restaurants:", error);
+            throw new Error("Failed to fetch restaurants");
         }
-  
-        const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-        if (!apiKey) {
-          throw new Error("GOOGLE_PLACES_API_KEY environment variable is not set");
-        }
-  
-        logger.info("Fetching restaurants", {
-          latitude,
-          longitude,
-          radius,
-          cuisine,
-          hasPageToken: !!pageToken
-        });
-  
-        let keyword = "restaurant";
-        if (cuisine && cuisine !== "All") {
-          keyword = `${cuisine} restaurant`;
-        }
-  
-        // Build params object
-        const params = {
-          location: {lat: Number(latitude), lng: Number(longitude)},
-          radius: Number(radius),
-          keyword: keyword,
-          type: "restaurant",
-          key: apiKey,
-        };
-  
-        // Add pagetoken if provided (for getting next page)
-        if (pageToken) {
-          params.pagetoken = pageToken;
-        }
-  
-        const placesResponse = await googleMapsClient.placesNearby({
-          params: params,
-        });
-  
-        const transformedRestaurants = placesResponse.data.results.map(
-          (place, index) => ({
-            id: place.place_id || `restaurant-${index}`,
-            name: place.name || "Unknown Restaurant",
-            cuisine: extractCuisineFromTypes(place.types || []),
-            price: convertPriceLevel(place.price_level),
-            distance: calculateDistance(
-              Number(latitude),
-              Number(longitude),
-              place.geometry?.location?.lat || 0,
-              place.geometry?.location?.lng || 0
-            ),
-            rating: place.rating || 0,
-            heroPhoto: getPhotoUrl(place.photos?.[0]?.photo_reference),
-            summary: `${place.name} - ${place.vicinity}`,
-            highlights: [],
-            coords: {
-              latitude: place.geometry?.location?.lat || 0,
-              longitude: place.geometry?.location?.lng || 0,
-            },
-            isOpen: place.opening_hours?.open_now,
-            vicinity: place.vicinity,
-            placeId: place.place_id, // Add this for better Google Maps integration
-          })
-        ).filter(restaurant => restaurant.rating >= 4.0); 
-  
-        logger.info(`Found ${transformedRestaurants.length} restaurants`);
-        
-        // Return both restaurants and next page token
-        return {
-          restaurants: transformedRestaurants,
-          nextPageToken: placesResponse.data.next_page_token || null,
-          hasMore: !!placesResponse.data.next_page_token
-        };
-      } catch (error) {
-        logger.error("Error fetching restaurants:", error);
-        throw new Error("Failed to fetch restaurants");
-      }
     }
-  );
+);
 
 exports.getRestaurantDetails = onCall(
     {
@@ -210,7 +236,7 @@ exports.searchRestaurants = onCall(
                     isOpen: place.opening_hours?.open_now,
                     address: place.formatted_address,
                 })
-            ).filter(restaurant => restaurant.rating >= 4.0); 
+            ).filter(restaurant => restaurant.rating >= 4.0);
 
             return { restaurants: transformedRestaurants }; // Return directly
         } catch (error) {
@@ -219,6 +245,17 @@ exports.searchRestaurants = onCall(
         }
     }
 );
+
+function getGooglePlaceType(establishmentType) {
+    const typeMapping = {
+        'Restaurant': 'restaurant',
+        'Bar': 'bar',
+        'Cafe': 'cafe',
+        'Desserts': 'dessert_shop'
+    };
+
+    return typeMapping[establishmentType] || 'restaurant';
+}
 
 // Helper functions
 /**

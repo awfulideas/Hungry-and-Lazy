@@ -9,7 +9,9 @@ export const getNearbyRestaurants = async (userLocation, filters = {}, pageToken
             latitude: userLocation.latitude,
             longitude: userLocation.longitude,
             radius: filters.distance * 1000, // Convert km to meters
-            cuisine: filters.cuisine,
+            includedCuisines: filters.cuisines || [], // Send included cuisines array
+            excludedCuisines: filters.excludedCuisines || [], // Send excluded cuisines array
+            establishmentType: filters.establishmentType || 'Restaurant',
             pageToken: pageToken, // Add pagination support
         });
 
