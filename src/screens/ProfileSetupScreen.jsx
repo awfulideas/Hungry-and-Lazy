@@ -151,7 +151,7 @@ export const ProfileSetupScreen = ({ onSave, currentProfile, hideDistance = fals
                                     style={profile.distance === val ? styles.profileOptionButtonSelectedNew : styles.profileOptionButtonNew}
                                     onClick={() => updateProfile('distance', val)}
                                 >
-                                    {val} km
+                                    {val} mi
                                 </button>
                             ))}
                         </div>

@@ -23,7 +23,7 @@ export const RestaurantCard = ({ restaurant, isDetailsVisible }) => (
             </div>
           ))}
           <div style={styles.infoRow}>
-            <InfoPill icon={<MapPin size={14} color="#fff" />} text={`${restaurant.distance} km`} />
+            <InfoPill icon={<MapPin size={14} color="#fff" />} text={`${restaurant.distance} mi`} />
             <InfoPill icon={<Star size={14} color="#fff" />} text={`${restaurant.rating} Rating`} />
             <InfoPill icon={<DollarSign size={14} color="#fff" />} text={`${restaurant.price}`} />
           </div>

@@ -8,11 +8,11 @@ export const getNearbyRestaurants = async (userLocation, filters = {}, pageToken
         const response = await getNearbyRestaurantsFunc({
             latitude: userLocation.latitude,
             longitude: userLocation.longitude,
-            radius: filters.distance * 1000, // Convert km to meters
-            includedCuisines: filters.cuisines || [], // Send included cuisines array
-            excludedCuisines: filters.excludedCuisines || [], // Send excluded cuisines array
+            radius: filters.distance * 1609.34, // Convert miles to meters (1 mile = 1609.34 meters)
+            includedCuisines: filters.cuisines || [], 
+            excludedCuisines: filters.excludedCuisines || [], 
             establishmentType: filters.establishmentType || 'Restaurant',
-            pageToken: pageToken, // Add pagination support
+            pageToken: pageToken, 
         });
 
         return response.data; // Returns { restaurants, nextPageToken, hasMore }

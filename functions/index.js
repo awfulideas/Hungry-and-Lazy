@@ -331,10 +331,10 @@ function convertPriceLevel(priceLevel) {
  * @param {number} lon1 - Longitude 1
  * @param {number} lat2 - Latitude 2
  * @param {number} lon2 - Longitude 2
- * @return {number} - Distance in kilometers
+ * @return {number} - Distance in miles
  */
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Radius of the Earth in km
+    const R = 3959; // Radius of the Earth in miles (changed from 6371 km)
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a =
@@ -342,7 +342,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
         Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distance in km
+    const d = R * c; // Distance in miles
     return Math.round(d * 10) / 10; // Round to 1 decimal place
 }
 
@@ -356,6 +356,6 @@ function getPhotoUrl(photoReference) {
         return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?' +
             'q=80&w=1000&auto=format&fit=crop';
     }
-    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600` +
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800` +
         `&photo_reference=${photoReference}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
 }
