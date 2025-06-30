@@ -43,14 +43,13 @@ const landingStyles = {
   },
 
   andText: {
-    fontSize: 28,
-    fontWeight: '300',
+    fontSize: 40,
+    fontWeight: '500',
     color: '#4ecdc4',
     fontStyle: 'italic',
     letterSpacing: '1px',
     textShadow: '0 2px 4px rgba(78, 205, 196, 0.2)',
     marginLeft: 4,
-    marginTop: 8
   },
 
   // Animated subtitle container
@@ -295,7 +294,7 @@ export const LandingScreen = ({ onHungryNow, onLater }) => {
       <div style={landingStyles.logoContainer}>
         <div style={landingStyles.logoMain}>
           <span style={landingStyles.lazyText}>Lazy</span>
-          <span style={landingStyles.andText}>And</span>
+          <span style={landingStyles.andText}>+</span>
         </div>
         
         <div style={landingStyles.logoSubtitleContainer}>

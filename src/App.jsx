@@ -9,15 +9,17 @@ import { getNearbyRestaurants, getCurrentLocation } from './services/restaurantS
 import { openGoogleMaps } from './utils/openGoogleMaps';
 
 export default function App() {
-  const [appState, setAppState] = useState('landing'); 
-  const [isHungryNow, setIsHungryNow] = useState(false); 
+  const [appState, setAppState] = useState('landing');
+  const [isHungryNow, setIsHungryNow] = useState(false);
   const [profile, setProfile] = useState({
     diet: 'None',
     cuisines: [],
+    excludedCuisines: [],
+    establishmentType: 'Restaurant', 
     distance: 5,
     minPrice: 1,
     maxPrice: 4,
-    eatingTime: 'NOW' // Added this new state
+    eatingTime: 'NOW'
   });
   const [restaurants, setRestaurants] = useState([]);
   const [saved, setSaved] = useState([]);
@@ -26,6 +28,7 @@ export default function App() {
   const [hasMoreRestaurants, setHasMoreRestaurants] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [cuisinePaginationState, setCuisinePaginationState] = useState({});
 
   useEffect(() => {
     if (restaurants.length !== 0) {
@@ -41,30 +44,113 @@ export default function App() {
 
   const loadNearbyRestaurants = async (loadMore = false) => {
     try {
-      setIsInitialLoading(true);
+      setIsInitialLoading(!loadMore);
+      if (loadMore) setIsLoadingMore(true);
+
       const userLocation = await getCurrentLocation();
 
-      const pageToken = loadMore ? nextPageToken : null;
-      const result = await getNearbyRestaurants(userLocation, {
-        distance: profile.distance,
-        cuisine: profile.cuisines[0],
-      }, pageToken);
+      let allRestaurants = [];
+      let hasAnyMore = false;
+      let newNextPageToken = null;
 
-      if (loadMore) {
-        // Append new restaurants to existing ones
-        setRestaurants(prev => [...prev, ...result.restaurants]);
-      } else {
-        // Replace with new restaurants
-        setRestaurants(result.restaurants);
+      // Single or no cuisine - simple pagination
+      if (profile.cuisines.length <= 1) {
+        const result = await getNearbyRestaurants(userLocation, {
+          distance: profile.distance,
+          cuisines: profile.cuisines.length <= 1 ? profile.cuisines : [profile.cuisines[0]],
+          excludedCuisines: profile.excludedCuisines || [],
+          establishmentType: profile.establishmentType, 
+        }, loadMore ? nextPageToken : null);
+
+        allRestaurants = result.restaurants;
+        newNextPageToken = result.nextPageToken;
+        hasAnyMore = result.hasMore;
+      }
+      // Multiple cuisines - parallel API calls
+      else {
+        const newPaginationState = { ...cuisinePaginationState };
+
+        const restaurantPromises = profile.cuisines.map(async (cuisine) => {
+          // Skip this cuisine if it has no more results
+          if (loadMore && newPaginationState[cuisine]?.hasMore === false) {
+            return { restaurants: [], nextPageToken: null, hasMore: false };
+          }
+
+          const pageToken = loadMore ? newPaginationState[cuisine]?.nextPageToken : null;
+
+          try {
+            const result = await getNearbyRestaurants(userLocation, {
+              distance: profile.distance,
+              cuisines: [cuisine], // Single cuisine for this iteration
+              excludedCuisines: profile.excludedCuisines || [],
+              establishmentType: profile.establishmentType, 
+            }, pageToken);
+
+            // Update pagination state for this cuisine
+            newPaginationState[cuisine] = {
+              nextPageToken: result.nextPageToken,
+              hasMore: result.hasMore
+            };
+
+            if (result.hasMore) hasAnyMore = true;
+
+            return result;
+          } catch (error) {
+            console.error(`Error loading ${cuisine} restaurants:`, error);
+            return { restaurants: [], nextPageToken: null, hasMore: false };
+          }
+        });
+
+        const results = await Promise.all(restaurantPromises);
+
+        // Update pagination state
+        setCuisinePaginationState(newPaginationState);
+
+        // Merge results
+        results.forEach(result => {
+          allRestaurants.push(...result.restaurants);
+        });
+
+        // Sort by rating and distance for better quality
+        allRestaurants.sort((a, b) => {
+          const ratingDiff = b.rating - a.rating;
+          if (Math.abs(ratingDiff) > 0.3) return ratingDiff;
+          return a.distance - b.distance;
+        });
       }
 
-      setNextPageToken(result.nextPageToken);
-      setHasMoreRestaurants(result.hasMore);
+      // Remove duplicates (same restaurant might appear in multiple cuisine searches)
+      const seenIds = new Set(loadMore ? restaurants.map(r => r.id) : []);
+      const uniqueRestaurants = [];
+
+      allRestaurants.forEach(restaurant => {
+        if (!seenIds.has(restaurant.id)) {
+          seenIds.add(restaurant.id);
+          uniqueRestaurants.push(restaurant);
+        }
+      });
+
+      // Update restaurants
+      if (loadMore) {
+        setRestaurants(prev => [...prev, ...uniqueRestaurants]);
+      } else {
+        setRestaurants(uniqueRestaurants);
+        // Reset pagination state on new search for multiple cuisines
+        if (profile.cuisines.length > 1) {
+          setCuisinePaginationState({});
+        }
+      }
+
+      // Update pagination state
+      setNextPageToken(newNextPageToken);
+      setHasMoreRestaurants(hasAnyMore);
     } catch (error) {
       console.error('Error loading restaurants:', error);
       setRestaurants(MOCK_RESTAURANTS); // Fallback
+      setHasMoreRestaurants(false);
     } finally {
       setIsInitialLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -116,27 +202,13 @@ export default function App() {
   };
 
   const loadMoreRestaurants = async () => {
-    if (!hasMoreRestaurants || isLoadingMore) return;
-
-    try {
-      setIsLoadingMore(true);
-      const userLocation = await getCurrentLocation();
-
-      const result = await getNearbyRestaurants(userLocation, {
-        distance: profile.distance,
-        cuisine: profile.cuisines[0],
-      }, nextPageToken);
-
-      // Append new restaurants
-      setRestaurants(prev => [...prev, ...result.restaurants]);
-      setNextPageToken(result.nextPageToken);
-      setHasMoreRestaurants(result.hasMore);
-    } catch (error) {
-      console.error('Error loading more restaurants:', error);
-      // Could show error state here
-    } finally {
-      setIsLoadingMore(false);
+    if (!hasMoreRestaurants || isLoadingMore) {
+      console.log('Cannot load more: hasMore =', hasMoreRestaurants, 'isLoading =', isLoadingMore);
+      return;
     }
+
+    console.log('Loading more restaurants...');
+    await loadNearbyRestaurants(true);
   };
 
   const renderContent = () => {
@@ -144,10 +216,10 @@ export default function App() {
       case 'landing':
         return <LandingScreen onHungryNow={handleHungryNow} onLater={handleLater} />;
       case 'profileSetup':
-        return <ProfileSetupScreen 
-          onSave={handleProfileSave} 
+        return <ProfileSetupScreen
+          onSave={handleProfileSave}
           currentProfile={profile}
-          hideDistance={isHungryNow} 
+          hideDistance={isHungryNow}
           onBack={() => setAppState('landing')}
         />;
       case 'main':

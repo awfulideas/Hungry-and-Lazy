@@ -6,6 +6,11 @@ import { ClipLoader } from 'react-spinners';
 
 export const MainScreen = ({ restaurants, onAction, onShowSaved, onShowProfile, isLoadingMore, hasMoreRestaurants, isInitialLoading }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [profileButtonHovered, setProfileButtonHovered] = useState(false);
+  const [savedButtonHovered, setSavedButtonHovered] = useState(false);
+  const [dislikeButtonHovered, setDislikeButtonHovered] = useState(false);
+  const [saveButtonHovered, setSaveButtonHovered] = useState(false);
+  const [likeButtonHovered, setLikeButtonHovered] = useState(false);
 
   const position = useRef({ x: 0, y: 0 }).current;
   const cardRef = useRef(null);
@@ -67,57 +72,80 @@ export const MainScreen = ({ restaurants, onAction, onShowSaved, onShowProfile, 
   };
 
   const renderCards = () => {
-
     if (isInitialLoading) {
       return (
-        <div style={styles.loadingContainer}>
+        <div style={styles.mainLoadingContainer}>
           <ClipLoader
-            color="#3498db"
+            color="#ff6b6b"
             size={50}
             loading={true}
             speedMultiplier={0.8}
           />
-          <h2 style={styles.loadingText}>Finding restaurants...</h2>
-          <p style={styles.loadingSubText}>We're searching for great places near you!</p>
+          <h2 style={styles.mainLoadingText}>Finding restaurants...</h2>
+          <p style={styles.mainLoadingSubText}>We're searching for great places near you!</p>
         </div>
       );
     }
 
     if (restaurants.length === 0 && isLoadingMore) {
       return (
-        <div style={styles.loadingContainer}>
+        <div style={styles.mainLoadingContainer}>
           <ClipLoader
-            color="#3498db"
+            color="#ff6b6b"
             size={50}
             loading={true}
             speedMultiplier={0.8}
           />
-          <h2 style={styles.loadingText}>Finding more restaurants...</h2>
-          <p style={styles.loadingSubText}>We're searching for great places near you!</p>
+          <h2 style={styles.mainLoadingText}>Finding more restaurants...</h2>
+          <p style={styles.mainLoadingSubText}>We're searching for great places near you!</p>
         </div>
       );
     }
 
-    // Show no more restaurants when empty and not loading
     if (restaurants.length === 0 && !hasMoreRestaurants) {
       return (
-        <div style={styles.noMoreCards}>
-          <AlertCircle size={48} color="#666" />
-          <h2 style={styles.noMoreCardsText}>No more restaurants found!</h2>
-          <p style={styles.noMoreCardsSubText}>Try adjusting your filters or distance to find more options.</p>
-          <button style={styles.noMoreCardsButton} onClick={onShowProfile}>Change Filters</button>
+        <div style={styles.mainNoMoreCards}>
+          <AlertCircle size={48} color="#ff6b6b" />
+          <h2 style={styles.mainNoMoreCardsText}>No more restaurants found!</h2>
+          <p style={styles.mainNoMoreCardsSubText}>Try adjusting your filters or distance to find more options.</p>
+          <button
+            style={styles.mainNoMoreCardsButton}
+            onClick={onShowProfile}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 30px rgba(255, 107, 107, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
+            }}
+          >
+            Change Filters
+          </button>
         </div>
       );
     }
 
-    // Show no restaurants match filters
     if (restaurants.length === 0) {
       return (
-        <div style={styles.noMoreCards}>
-          <AlertCircle size={48} color="#666" />
-          <h2 style={styles.noMoreCardsText}>No restaurants match your criteria.</h2>
-          <p style={styles.noMoreCardsSubText}>Try adjusting your profile settings!</p>
-          <button style={styles.noMoreCardsButton} onClick={onShowProfile}>Edit Profile</button>
+        <div style={styles.mainNoMoreCards}>
+          <AlertCircle size={48} color="#ff6b6b" />
+          <h2 style={styles.mainNoMoreCardsText}>No restaurants match your criteria.</h2>
+          <p style={styles.mainNoMoreCardsSubText}>Try adjusting your profile settings!</p>
+          <button
+            style={styles.mainNoMoreCardsButton}
+            onClick={onShowProfile}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 30px rgba(255, 107, 107, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
+            }}
+          >
+            Edit Profile
+          </button>
         </div>
       );
     }
@@ -125,7 +153,7 @@ export const MainScreen = ({ restaurants, onAction, onShowSaved, onShowProfile, 
     return restaurants.slice(0, 3).map((item, i) => {
       const isTopCard = i === 0;
       const cardStyle = {
-        ...styles.cardWrapper,
+        ...styles.mainCardWrapper,
         zIndex: 3 - i,
         transform: isTopCard ? 'none' : `translateY(${i * 10}px) scale(${1 - i * 0.05})`,
         opacity: isTopCard ? 1 : (1 - i * 0.3),
@@ -144,7 +172,9 @@ export const MainScreen = ({ restaurants, onAction, onShowSaved, onShowProfile, 
           onTouchEnd={isTopCard ? handlePointerUp : null}
         >
           <div onClick={() => isTopCard && setShowDetails(!showDetails)} style={{ height: '100%' }}>
-            <RestaurantCard restaurant={item} isDetailsVisible={showDetails && isTopCard} />
+            <div style={styles.mainCard}>
+              <RestaurantCard restaurant={item} isDetailsVisible={showDetails && isTopCard} />
+            </div>
           </div>
         </div>
       );
@@ -153,24 +183,77 @@ export const MainScreen = ({ restaurants, onAction, onShowSaved, onShowProfile, 
 
   return (
     <div style={styles.mainScreenContainer}>
-      <header style={styles.header}>
-        <button style={styles.iconButton} onClick={onShowProfile}><User size={28} color="#555" /></button>
-        <h1 style={styles.appName}>Food-Swipe</h1>
-        <button style={styles.iconButton} onClick={onShowSaved}><Heart size={28} color="#555" /></button>
+      <header style={styles.mainHeader}>
+        <button
+          style={{
+            ...styles.mainIconButton,
+            ...(profileButtonHovered ? styles.mainIconButtonHover : {})
+          }}
+          onClick={onShowProfile}
+          onMouseEnter={() => setProfileButtonHovered(true)}
+          onMouseLeave={() => setProfileButtonHovered(false)}
+        >
+          <User size={24} color="#555" />
+        </button>
+
+        <h1 style={styles.mainAppName}>Lazy +</h1>
+
+        <button
+          style={{
+            ...styles.mainIconButton,
+            ...(savedButtonHovered ? styles.mainIconButtonHover : {})
+          }}
+          onClick={onShowSaved}
+          onMouseEnter={() => setSavedButtonHovered(true)}
+          onMouseLeave={() => setSavedButtonHovered(false)}
+        >
+          <Heart size={24} color="#555" />
+        </button>
       </header>
-      <main style={styles.deckContainer}>{renderCards()}</main>
+
+      <main style={styles.mainDeckContainer}>
+        {renderCards()}
+      </main>
+
       {restaurants.length > 0 && (
-        <footer style={styles.footer}>
-          <button style={{ ...styles.actionButton, ...styles.dislikeButton }} onClick={() => handleSwipe('left')}>
-            <ThumbsDown color="#e74c3c" size={32} />
+        <footer style={styles.mainFooter}>
+          <button
+            style={{
+              ...styles.mainActionButton,
+              ...styles.mainDislikeButton,
+              ...(dislikeButtonHovered ? styles.mainActionButtonHover : {})
+            }}
+            onClick={() => handleSwipe('left')}
+            onMouseEnter={() => setDislikeButtonHovered(true)}
+            onMouseLeave={() => setDislikeButtonHovered(false)}
+          >
+            <ThumbsDown size={24} />
           </button>
-          <button style={{ ...styles.actionButton, ...styles.saveButtonFooter }} onClick={() => {
-            onAction(restaurants[0].id, 'SAVE');
-          }}>
-            <Save color="#3498db" size={32} />
+
+          <button
+            style={{
+              ...styles.mainActionButton,
+              ...styles.mainSaveButton,
+              ...(saveButtonHovered ? styles.mainActionButtonHover : {})
+            }}
+            onClick={() => onAction(restaurants[0].id, 'SAVE')}
+            onMouseEnter={() => setSaveButtonHovered(true)}
+            onMouseLeave={() => setSaveButtonHovered(false)}
+          >
+            <Save size={24} />
           </button>
-          <button style={{ ...styles.actionButton, ...styles.likeButton }} onClick={() => onAction(restaurants[0].id, 'LIKE')}>
-            <ThumbsUp color="#2ecc71" size={32} />
+
+          <button
+            style={{
+              ...styles.mainActionButton,
+              ...styles.mainLikeButton,
+              ...(likeButtonHovered ? styles.mainActionButtonHover : {})
+            }}
+            onClick={() => onAction(restaurants[0].id, 'LIKE')}
+            onMouseEnter={() => setLikeButtonHovered(true)}
+            onMouseLeave={() => setLikeButtonHovered(false)}
+          >
+            <ThumbsUp size={24} />
           </button>
         </footer>
       )}
