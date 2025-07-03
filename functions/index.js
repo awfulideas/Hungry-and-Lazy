@@ -72,6 +72,7 @@ exports.getNearbyRestaurants = onCall(
                 keyword: keyword,
                 type: searchType,
                 key: apiKey,
+                fields: 'place_id,name,vicinity,rating,price_level,photos,types,geometry,opening_hours,editorial_summary'
             };
 
             if (pageToken) {
@@ -95,8 +96,10 @@ exports.getNearbyRestaurants = onCall(
                         place.geometry?.location?.lng || 0
                     ),
                     rating: place.rating || 0,
+                    reviewCount: place.user_ratings_total || 0,
                     heroPhoto: getPhotoUrl(place.photos?.[0]?.photo_reference),
                     summary: `${place.name} - ${place.vicinity}`,
+                    description: place.editorial_summary?.overview || null,
                     highlights: [],
                     coords: {
                         latitude: place.geometry?.location?.lat || 0,

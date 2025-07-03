@@ -26,7 +26,14 @@ export const styles = {
   highlightItem: { display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   highlightText: { color: '#ddd', fontSize: 16, marginLeft: 10 },
   infoRow: { display: 'flex', justifyContent: 'space-around', marginTop: 20, paddingTop: 15, borderTop: '1px solid #555' },
-  infoPill: { display: 'flex', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: 20 },
+  infoPill: { 
+    display: 'flex', 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(255,255,255,0.1)', // Transparent background
+    padding: '8px 12px', 
+    borderRadius: 20 
+  },
   infoPillText: { color: '#fff', marginLeft: 5, fontWeight: '600' },
   savedItemImage: { width: 80, height: 80, borderRadius: 12, objectFit: 'cover' },
   savedItemInfo: { flex: 1, marginLeft: 15 },
